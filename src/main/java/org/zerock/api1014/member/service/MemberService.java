@@ -16,12 +16,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.zerock.api1014.common.exception.CommonExceptions;
 import org.zerock.api1014.common.exception.TaskException;
 import org.zerock.api1014.member.domain.MemberEntity;
+import org.zerock.api1014.member.domain.MemberRole;
 import org.zerock.api1014.member.dto.MemberDTO;
 import org.zerock.api1014.member.exception.MemberExceptions;
 import org.zerock.api1014.member.repository.MemberRepository;
 
 import java.util.LinkedHashMap;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -55,14 +57,51 @@ public class MemberService {
 
     public MemberDTO authKakao(String accessToken) {
 
-        log.info("---------auth kakao-----------");
+
+        log.info("---------authKakao-------");
+
 
         String email = getEmailFromKakaoAccessToken(accessToken);
 
+
         log.info("email: " + email);
 
-        return null;
+
+        Optional<MemberEntity> result = memberRepository.findById(email);
+
+
+
+
+        MemberEntity memberEntity = null;
+        MemberDTO memberDTO = new MemberDTO();
+        if(result.isPresent()) {
+            memberEntity = result.get();
+            memberDTO.setEmail(memberEntity.getEmail());
+            memberDTO.setPw(memberEntity.getPw());
+            memberDTO.setRole(memberEntity.getRole().toString());
+            return memberDTO;
+        }
+
+
+        String pw = UUID.randomUUID().toString();
+        MemberEntity newMember = MemberEntity.builder()
+                .email(email)
+                .pw(pw)
+                .role(MemberRole.USER)
+                .build();
+        memberRepository.save(newMember);
+
+
+        memberDTO.setEmail(email);
+        memberDTO.setPw(pw);
+        memberDTO.setRole(newMember.getRole().toString());
+
+
+        return memberDTO;
+
+
     }
+
 
     private String getEmailFromKakaoAccessToken(String accessToken){
 
@@ -93,12 +132,5 @@ public class MemberService {
                 log.info("kakaoAccount: " + kakaoAccount);
         return kakaoAccount.get("email");
     }
-
-    //    public MemberDTO getKakaoMember(String accessToken) {
-//        String email = getEmailFromKakaoAccessToken(accessToken);
-//        log.info("email: " + email );
-//
-//        return null;
-//    }
 
 }
